@@ -7,6 +7,7 @@ import Register from './pages/Register.jsx';
 import Chat from './pages/Chat.jsx';
 import Presets from './pages/Presets.jsx';
 import Usage from './pages/Usage.jsx';
+import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="presets" element={<Presets />} />
           <Route path="usage" element={<Usage />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>
   );
