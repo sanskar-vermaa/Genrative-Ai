@@ -1,9 +1,21 @@
 # GenStudio
 
-GenStudio is a full-stack AI chat workspace built on the Gemini API. It lets a
-signed-in user run multiple saved conversations, define reusable prompt
-presets (system prompt + temperature), and track their own token usage —
-with a free-plan daily message cap enforced server-side.
+GenStudio is an AI chat workspace built on the Gemini API. Anyone can use it
+instantly — **no sign-up or login**. Run multiple saved conversations, define
+reusable prompt presets (system prompt + temperature), and track token usage.
+
+## Two ways to run it
+
+| Mode | What you get | Where data lives |
+| --- | --- | --- |
+| **No-login (default, `frontend/`)** | Open the site and chat. Deployed on Vercel with one serverless function, `frontend/api/chat.js`, that keeps the Gemini key on the server. | The visitor's own browser (localStorage) |
+| **Full-stack (`backend/`)** | Original multi-user version with accounts, MongoDB and server-side plan limits. | MongoDB |
+
+### Deploy the no-login version on Vercel
+
+1. Import the repo on Vercel and set **Root Directory** to `frontend`.
+2. In **Settings → Environment Variables**, add `GEMINI_API_KEY` (get one free at Google AI Studio). Optional: `GEMINI_MODEL` (default `gemini-2.5-flash`).
+3. Redeploy. Chats, presets and usage are saved per visitor in their browser, with a soft limit of 30 messages per day.
 
 ## Why this exists
 
