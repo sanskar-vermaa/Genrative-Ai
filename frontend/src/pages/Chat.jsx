@@ -1,74 +1,90 @@
 import { useEffect, useRef, useState } from 'react';
-import * as conversationsApi from '../api/conversations.js';
-import { sendMessage } from '../api/messages.js';
+import * as store from '../lib/store.js';
+import { generateReply } from '../api/chat.js';
 import ConversationList from '../components/ConversationList.jsx';
 import ChatMessage from '../components/ChatMessage.jsx';
 
 export default function Chat() {
-  const [conversations, setConversations] = useState([]);
-  const [activeId, setActiveId] = useState(null);
+  const [conversations, setConversations] = useState(() => store.listConversations());
+  const [activeId, setActiveId] = useState(() => store.listConversations()[0]?._id || null);
   const [messages, setMessages] = useState([]);
+  const [presets] = useState(() => store.listPresets());
+  const [presetId, setPresetId] = useState('');
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
 
-  useEffect(() => {
-    conversationsApi.listConversations().then((list) => {
-      setConversations(list);
-      if (list.length) setActiveId(list[0]._id);
-    });
-  }, []);
+  const refresh = () => setConversations(store.listConversations());
 
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
       return;
     }
-    conversationsApi.getConversation(activeId).then((data) => setMessages(data.messages));
+    const { conversation, messages } = store.getConversation(activeId);
+    setMessages(messages);
+    setPresetId(conversation?.preset || '');
   }, [activeId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function handleNew() {
-    const conversation = await conversationsApi.createConversation();
-    setConversations((prev) => [conversation, ...prev]);
+  function handleNew() {
+    const conversation = store.createConversation({ presetId: presetId || null });
+    refresh();
     setActiveId(conversation._id);
   }
 
-  async function handleDelete(id) {
-    await conversationsApi.deleteConversation(id);
-    setConversations((prev) => prev.filter((c) => c._id !== id));
-    if (activeId === id) setActiveId(null);
+  function handleDelete(id) {
+    store.deleteConversation(id);
+    refresh();
+    if (activeId === id) setActiveId(store.listConversations()[0]?._id || null);
+  }
+
+  function handlePresetChange(value) {
+    setPresetId(value);
+    if (activeId) store.updateConversation(activeId, { preset: value || null });
   }
 
   async function handleSend(e) {
     e.preventDefault();
-    if (!draft.trim()) return;
+    const text = draft.trim();
+    if (!text || sending) return;
+
+    if (store.messagesToday() >= store.DAILY_MESSAGE_LIMIT) {
+      setError(`Daily limit reached (${store.DAILY_MESSAGE_LIMIT} messages). Please come back tomorrow.`);
+      return;
+    }
 
     let conversationId = activeId;
     if (!conversationId) {
-      const conversation = await conversationsApi.createConversation();
-      setConversations((prev) => [conversation, ...prev]);
-      conversationId = conversation._id;
+      conversationId = store.createConversation({ presetId: presetId || null })._id;
       setActiveId(conversationId);
     }
 
-    const pendingText = draft;
     setDraft('');
-    setMessages((prev) => [...prev, { role: 'user', content: pendingText, _id: `local-${Date.now()}` }]);
-    setSending(true);
     setError('');
+    store.addMessage(conversationId, 'user', text);
+    const history = store.getConversation(conversationId).messages;
+    setMessages(history);
+    refresh();
+    setSending(true);
 
     try {
-      const { assistantMessage } = await sendMessage(conversationId, pendingText);
-      setMessages((prev) => [...prev, assistantMessage]);
-      const updated = await conversationsApi.listConversations();
-      setConversations(updated);
+      const preset = presetId ? store.getPreset(presetId) : null;
+      const reply = await generateReply({
+        history: history.map((m) => ({ role: m.role, content: m.content })),
+        systemPrompt: preset?.systemPrompt,
+        temperature: preset?.temperature,
+      });
+      store.addMessage(conversationId, 'assistant', reply.text, { tokenCount: reply.completionTokens });
+      store.logUsage(conversationId, reply.promptTokens, reply.completionTokens);
+      setMessages(store.getConversation(conversationId).messages);
+      refresh();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send message');
+      setError(err.response?.data?.error || 'Failed to get a reply. Please try again.');
     } finally {
       setSending(false);
     }
@@ -86,13 +102,27 @@ export default function Chat() {
         />
       </div>
       <div className="chat-main card">
+        {presets.length > 0 && (
+          <label className="preset-picker">
+            Preset
+            <select value={presetId} onChange={(e) => handlePresetChange(e.target.value)}>
+              <option value="">None</option>
+              {presets.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="chat-thread">
           {messages.map((m) => (
             <ChatMessage key={m._id} role={m.role} content={m.content} />
           ))}
           {messages.length === 0 && (
-            <p className="muted">Start the conversation by sending a message below.</p>
+            <p className="muted">Start the conversation by sending a message below. No sign-up needed.</p>
           )}
+          {sending && <ChatMessage role="assistant" content="Thinking…" />}
           <div ref={bottomRef} />
         </div>
         {error && <span className="error-text">{error}</span>}

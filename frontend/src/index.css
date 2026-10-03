@@ -388,3 +388,20 @@ input:focus, select:focus, textarea:focus {
 .stat strong {
   font-size: 1.75rem;
 }
+
+/* Preset picker above the chat thread */
+.preset-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted, #94a3b8);
+  margin-bottom: 0.75rem;
+}
+.preset-picker select {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
