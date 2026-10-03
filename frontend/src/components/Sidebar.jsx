@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { clearAll } from '../lib/store.js';
 
 const links = [
   { to: '/', label: 'Chats', end: true },
@@ -8,7 +8,12 @@ const links = [
 ];
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  function handleClear() {
+    if (window.confirm('Delete all chats, presets and usage stats saved in this browser?')) {
+      clearAll();
+      window.location.assign('/');
+    }
+  }
 
   return (
     <aside className="sidebar">
@@ -27,10 +32,10 @@ export default function Sidebar() {
       </nav>
       <div className="sidebar-footer">
         <div className="user-chip">
-          <span>{user?.name}</span>
-          <small>{user?.plan} plan</small>
+          <span>No account needed</span>
+          <small style={{ textTransform: "none" }}>Chats are saved in this browser</small>
         </div>
-        <button className="btn-secondary" onClick={logout}>Log out</button>
+        <button className="btn-secondary" onClick={handleClear}>Clear my data</button>
       </div>
     </aside>
   );

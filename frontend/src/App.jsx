@@ -1,9 +1,5 @@
-import { Route, Routes } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
-import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
 import Chat from './pages/Chat.jsx';
 import Presets from './pages/Presets.jsx';
 import Usage from './pages/Usage.jsx';
@@ -11,24 +7,16 @@ import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Chat />} />
-          <Route path="presets" element={<Presets />} />
-          <Route path="usage" element={<Usage />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AuthProvider>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Chat />} />
+        <Route path="presets" element={<Presets />} />
+        <Route path="usage" element={<Usage />} />
+      </Route>
+      {/* Old account pages now go straight to the app */}
+      <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/register" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
