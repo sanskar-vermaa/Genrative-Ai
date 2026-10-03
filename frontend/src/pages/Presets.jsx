@@ -1,40 +1,30 @@
-import { useEffect, useState } from 'react';
-import * as presetsApi from '../api/presets.js';
+import { useState } from 'react';
+import * as store from '../lib/store.js';
 
 export default function Presets() {
-  const [presets, setPresets] = useState([]);
+  const [presets, setPresets] = useState(() => store.listPresets());
   const [name, setName] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [temperature, setTemperature] = useState(0.7);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    presetsApi.listPresets().then(setPresets);
-  }, []);
-
-  async function handleCreate(e) {
+  function handleCreate(e) {
     e.preventDefault();
-    setError('');
-    try {
-      const preset = await presetsApi.createPreset({ name, systemPrompt, temperature: Number(temperature) });
-      setPresets((prev) => [preset, ...prev]);
-      setName('');
-      setSystemPrompt('');
-      setTemperature(0.7);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create preset');
-    }
+    store.createPreset({ name: name.trim(), systemPrompt: systemPrompt.trim(), temperature: Number(temperature) });
+    setPresets(store.listPresets());
+    setName('');
+    setSystemPrompt('');
+    setTemperature(0.7);
   }
 
-  async function handleDelete(id) {
-    await presetsApi.deletePreset(id);
-    setPresets((prev) => prev.filter((p) => p._id !== id));
+  function handleDelete(id) {
+    store.deletePreset(id);
+    setPresets(store.listPresets());
   }
 
   return (
     <div>
       <h1 className="glow-title">Presets</h1>
-      <p className="muted">Reusable system prompts and temperature settings for new chats.</p>
+      <p className="muted">Reusable system prompts and temperature settings. Pick one in the chat to use it.</p>
 
       <div className="card" style={{ margin: '1.25rem 0' }}>
         <form className="form" onSubmit={handleCreate}>
@@ -57,7 +47,6 @@ export default function Presets() {
               onChange={(e) => setTemperature(e.target.value)}
             />
           </label>
-          {error && <span className="error-text">{error}</span>}
           <button className="btn-primary" type="submit">Create preset</button>
         </form>
       </div>

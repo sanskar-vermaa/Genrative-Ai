@@ -1,23 +1,14 @@
-import { useEffect, useState } from 'react';
-import { getUsageSummary } from '../api/usage.js';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useState } from 'react';
+import * as store from '../lib/store.js';
 
 export default function Usage() {
-  const { user } = useAuth();
-  const [summary, setSummary] = useState(null);
-
-  useEffect(() => {
-    getUsageSummary().then(setSummary);
-  }, []);
-
-  if (!summary) return <p className="muted">Loading usage...</p>;
+  const [summary] = useState(() => store.getUsageSummary());
 
   return (
     <div>
       <h1 className="glow-title">Usage</h1>
       <p className="muted">
-        You're on the <strong>{user?.plan}</strong> plan.
-        {user?.plan === 'free' && ' Free plan is limited to 30 messages per day.'}
+        Free to use — up to {store.DAILY_MESSAGE_LIMIT} messages per day. Stats are stored only in this browser.
       </p>
 
       <div className="stat-grid">
